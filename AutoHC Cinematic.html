@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AutoHC — Automatización de historias clínicas</title>
+<meta name="description" content="AutoHC copia automáticamente los datos de tu última historia clínica en GestionaSalud. Recupera dos horas al día." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="styles.css" />
+
+<!-- Hide body until gsap.set has armed initial reveal states (prevents flash) -->
+<script>document.documentElement.classList.add('is-loading');</script>
+
+<!-- Tweaks defaults — host parses this JSON block to persist edits -->
+<script>
+window.__TWEAKS__ = /*EDITMODE-BEGIN*/{
+  "grain": true,
+  "cursor": true,
+  "accent": "blue"
+}/*EDITMODE-END*/;
+(function applyInitialTweaks(){
+  const t = window.__TWEAKS__;
+  document.documentElement.setAttribute('data-ready','1');
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.dataset.grain  = t.grain  ? 'on' : 'off';
+    document.body.dataset.cursor = t.cursor ? 'on' : 'off';
+    document.body.dataset.accent = t.accent || 'blue';
+    applyAccent(t.accent || 'blue');
+  });
+  window.applyAccent = function(a){
+    const map = {
+      blue:  { brand: '#1B5BA8', deep: '#0E3A70', gold: '#C9A961' },
+      olive: { brand: '#5A6B3B', deep: '#2F3A1A', gold: '#C9A961' },
+      ink:   { brand: '#0A0A0A', deep: '#000000', gold: '#C9A961' },
+    };
+    const c = map[a] || map.blue;
+    document.documentElement.style.setProperty('--brand', c.brand);
+    document.documentElement.style.setProperty('--brand-deep', c.deep);
+    document.documentElement.style.setProperty('--gold', c.gold);
+  };
+})();
+</script>
+</head>
+<body data-grain="on" data-cursor="on" data-accent="blue">
+
+<!-- Grain overlay -->
+<div class="grain" aria-hidden="true"></div>
+
+<!-- Custom cursor -->
+<div class="cursor" aria-hidden="true"></div>
+<div class="cursor-dot" aria-hidden="true"></div>
+
+<!-- Scroll progress -->
+<div class="scroll-progress" aria-hidden="true"></div>
+
+<!-- ============================================================
+     NAV
+============================================================ -->
+<header class="nav">
+  <a class="nav-logo" href="#top">
+    <span class="dot"></span>
+    <span>AutoHC</span>
+  </a>
+  <div class="nav-meta">
+    <span data-ts class="ts">BOG · 00:00</span>
+    <span>v 2.0 · Chrome</span>
+  </div>
+  <a class="nav-cta" href="https://wa.me/573053320331?text=Hola%2C%20quiero%20probar%20AutoHC" target="_blank" rel="noopener">
+    Quiero probarlo
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </a>
+</header>
+
+<!-- ============================================================
+     HERO
+============================================================ -->
+<section id="top" class="hero">
+  <div class="hero-top">
+    <div class="hero-badge r-fade">
+      <span class="pulse"></span>
+      Extensión para Chrome · GestionaSalud
+    </div>
+    <div class="hero-id r-fade">
+      <span>N° 001</span>
+      <span>AutoHC / 2026</span>
+    </div>
+  </div>
+
+  <div class="hero-headline">
+    <h1 class="display">
+      <span class="line-mask r-mask r-mask--early"><span>Recupera</span></span>
+      <span class="line-mask r-mask"><span><em>dos&nbsp;horas</em></span></span>
+      <span class="line-mask r-mask"><span>al día sin</span></span>
+      <span class="line-mask r-mask"><span><span class="accent">tocar</span> el teclado.</span></span>
+    </h1>
+  </div>
+
+  <div class="hero-bottom">
+    <p class="hero-lede r-fade">
+      AutoHC copia automáticamente los datos de tu última historia clínica al abrir una nueva en <strong>GestionaSalud</strong>. Un clic, y listo. Sin teclear lo mismo dos veces.
+    </p>
+    <div class="hero-actions r-fade">
+      <a href="#descargar" class="btn">
+        <span>Descargar gratis</span>
+        <span class="arrow">↓</span>
+      </a>
+      <a href="https://wa.me/573053320331?text=Hola%2C%20quiero%20probar%20AutoHC" target="_blank" rel="noopener" class="btn btn--wa">
+        <span>WhatsApp</span>
+        <span class="arrow">→</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="scroll-cue">
+    <span class="bar"></span>
+    <span>Scroll · Storytelling</span>
+  </div>
+</section>
+
+<!-- ============================================================
+     STATS — pinned monumental counters
+============================================================ -->
+<section class="stats">
+  <div class="stats-pin">
+    <div class="stats-stage">
+      <div class="label" style="padding: 0 0 0 0">
+        <span class="eyebrow">Lo que recuperas</span>
+      </div>
+      <div class="stats-stack">
+        <div class="stat" data-i="0">
+          <div>
+            <div class="num"><em>2</em><span style="font-style:italic">h</span></div>
+            <div class="lbl">Recuperadas por día clínico</div>
+          </div>
+        </div>
+        <div class="stat" data-i="1">
+          <div>
+            <div class="num"><em>1</em></div>
+            <div class="lbl">Clic para copiar toda la historia</div>
+          </div>
+        </div>
+        <div class="stat" data-i="2">
+          <div>
+            <div class="num">&lt;<em>30</em><span style="font-style:italic">s</span></div>
+            <div class="lbl">Por cada nueva historia clínica</div>
+          </div>
+        </div>
+      </div>
+      <div class="counter stats-counter">01 / 03</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     AUDIENCE — horizontal scroll
+============================================================ -->
+<section class="audience audience-h">
+  <div class="audience-intro">
+    <h2 class="display">
+      <span class="line-mask r-mask"><span>Hecho para médicos</span></span>
+      <span class="line-mask r-mask"><span>que <em>atienden</em> de verdad.</span></span>
+    </h2>
+    <p class="r-fade">Si llenar historias clínicas te quita tiempo de consulta, AutoHC es para ti. Funciona igual en presencial y en teleconsulta dentro de GestionaSalud.</p>
+  </div>
+  <div class="audience-track">
+    <article class="audience-card">
+      <div class="num">01 — Médico general</div>
+      <div class="vis" data-glyph="A"></div>
+      <h3>Muchos pacientes,<br/>poco tiempo</h3>
+      <p>Cuando ves veinte pacientes al día, cada minuto cuenta. AutoHC te devuelve horas cada jornada.</p>
+    </article>
+    <article class="audience-card">
+      <div class="num">02 — Especialista</div>
+      <div class="vis" data-glyph="B"></div>
+      <h3>Seguimientos<br/>casi idénticos</h3>
+      <p>Para controles donde los datos cambian poco entre visitas: copia, ajusta lo nuevo, guarda.</p>
+    </article>
+    <article class="audience-card">
+      <div class="num">03 — Teleconsulta</div>
+      <div class="vis" data-glyph="C"></div>
+      <h3>Igual de fluido<br/>en virtual</h3>
+      <p>Funciona dentro de GestionaSalud sin importar si la consulta es presencial o por video.</p>
+    </article>
+    <article class="audience-card">
+      <div class="num">04 — Equipos clínicos</div>
+      <div class="vis" data-glyph="D"></div>
+      <h3>Activación para<br/>todo tu equipo</h3>
+      <p>Consultorios y clínicas pueden activar AutoHC para todo el personal médico a la vez.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ============================================================
+     HOW — sticky storytelling
+============================================================ -->
+<section class="how">
+  <div class="how-head">
+    <h2 class="display">
+      <span class="line-mask r-mask"><span>Tres pasos.</span></span>
+      <span class="line-mask r-mask"><span><em>Treinta segundos.</em></span></span>
+    </h2>
+    <p class="r-fade">Si puedes hacer clic, puedes usar AutoHC. No necesitas saber de tecnología — la extensión vive donde ya trabajas.</p>
+  </div>
+
+  <div class="how-pin">
+    <div class="how-grid">
+      <div class="how-steps">
+        <div class="how-step is-active" data-step="1">
+          <div class="step-num">— Paso 01</div>
+          <h3>Abre una historia<br/>nueva</h3>
+          <p>Entra a GestionaSalud y abre la historia clínica que vas a llenar como siempre lo haces.</p>
+        </div>
+        <div class="how-step" data-step="2">
+          <div class="step-num">— Paso 02</div>
+          <h3>Toca el botón <em>azul</em></h3>
+          <p>Busca el botón flotante AutoHC en la esquina inferior derecha. Un solo clic.</p>
+        </div>
+        <div class="how-step" data-step="3">
+          <div class="step-num">— Paso 03</div>
+          <h3>Revisa y ajusta</h3>
+          <p>Los datos de tu última consulta ya están en el formulario. Modifica solo lo que cambió esta vez.</p>
+        </div>
+      </div>
+
+      <div class="how-stage" data-step="1">
+        <div class="browser">
+          <div class="browser-bar">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="url">gestionasalud.com / consulta / nueva</span>
+          </div>
+          <div class="canvas">
+            <div class="form-fields">
+              <div class="field tall" style="--w:0%"><span class="field-fill"></span></div>
+              <div class="field" style="--w:0%"><span class="field-fill b"></span></div>
+              <div class="field" style="--w:0%"><span class="field-fill c"></span></div>
+              <div class="field tall" style="--w:0%"><span class="field-fill d"></span></div>
+              <div class="field" style="--w:0%"><span class="field-fill e"></span></div>
+            </div>
+            <svg class="cursor-icon" viewBox="0 0 24 24" fill="#0A0A0A" stroke="#fff" stroke-width="1.2"><path d="M5 3 L5 19 L9 15 L11.5 21 L14 20 L11.5 14 L17 14 Z"/></svg>
+            <div class="floating-btn">AutoHC</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="height: 30vh"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     DEMO
+============================================================ -->
+<section class="demo">
+  <div class="demo-head">
+    <span class="eyebrow center r-fade" style="display:block; margin-bottom: 16px; color: rgba(244,241,234,.5)">— Demo en vivo —</span>
+    <h2 class="display">
+      <span class="line-mask r-mask"><span>Míralo en <em>acción</em></span></span>
+    </h2>
+    <p class="r-fade">Una consulta real, un clic, treinta segundos. Reemplaza este bloque con tu video o GIF cuando esté listo.</p>
+  </div>
+  <div class="demo-stage r-scale">
+    <button class="play" aria-label="Reproducir demo">
+      <svg viewBox="0 0 24 24" fill="#F4F1EA"><polygon points="6 4 20 12 6 20"/></svg>
+    </button>
+    <div class="vid-meta">
+      <span>AutoHC · Demo</span>
+      <span>00:42 · 1080p</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FEATURES
+============================================================ -->
+<section class="features">
+  <div class="features-head">
+    <h2 class="display">
+      <span class="line-mask r-mask"><span>Tú decides</span></span>
+      <span class="line-mask r-mask"><span><em>qué se copia.</em></span></span>
+    </h2>
+    <p class="r-fade">Activa o desactiva cada sección desde la extensión. AutoHC es preciso, no invasivo. Tú mantienes el control clínico.</p>
+  </div>
+  <div class="feat-list">
+    <div class="feat-row">
+      <div class="ix">F.01</div>
+      <h3>Antecedentes</h3>
+      <p>Familiares, patológicos, quirúrgicos y alérgicos — todo lo que rara vez cambia entre visitas.</p>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg></div>
+    </div>
+    <div class="feat-row">
+      <div class="ix">F.02</div>
+      <h3>Revisión por sistemas</h3>
+      <p>Solo se aplica a consultas presenciales. Reformula la revisión previa y la deja lista.</p>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg></div>
+    </div>
+    <div class="feat-row">
+      <div class="ix">F.03</div>
+      <h3>Exámenes</h3>
+      <p>Toma los exámenes de la consulta anterior y los reformula listos para esta visita.</p>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg></div>
+    </div>
+    <div class="feat-row">
+      <div class="ix">F.04</div>
+      <h3>Medicamentos</h3>
+      <p>Reagrega todos los medicamentos de la consulta previa con un solo movimiento.</p>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg></div>
+    </div>
+    <div class="feat-row">
+      <div class="ix">F.05</div>
+      <h3>Interconsultas</h3>
+      <p>Copia las interconsultas previas para que solo tengas que actualizar lo nuevo del día.</p>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg></div>
+    </div>
+    <div class="feat-row">
+      <div class="ix">F.06</div>
+      <h3>Insumos y paquetes</h3>
+      <p>Reagrega insumos y paquetes de la consulta anterior — útil en seguimientos protocolizados.</p>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     PRICE — monumental
+============================================================ -->
+<section class="price">
+  <div class="price-grid">
+    <div>
+      <span class="eyebrow r-fade" style="color: rgba(244,241,234,.55); margin-bottom: 32px; display:inline-flex">— Precio simple, sin sorpresas</span>
+      <div class="price-mono r-fade">
+        <span class="currency">$</span><span data-num="70" data-decimals="0">0</span>.000
+        <span class="per">COP / mes · Plan mensual</span>
+      </div>
+    </div>
+    <div class="price-side">
+      <h3 class="r-fade">Una clave mensual.<br/><em>Cancelas cuando quieras.</em></h3>
+      <ul class="price-list">
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Acceso completo a todas las funciones</li>
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Plantillas personalizadas ilimitadas</li>
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Soporte directo por WhatsApp</li>
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Nueva clave automática cada mes</li>
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Actualizaciones incluidas</li>
+      </ul>
+      <a href="https://wa.me/573053320331?text=Hola%2C%20quiero%20activar%20mi%20suscripci%C3%B3n%20de%20AutoHC" target="_blank" rel="noopener" class="btn btn--wa" style="width:100%; justify-content:center;">
+        <span>Activar mi suscripción</span>
+        <span class="arrow">→</span>
+      </a>
+
+      <div class="price-pay">
+        <div class="lbl">Métodos de pago</div>
+        <div class="pay-row">
+          <span class="pay-tag"><span class="dot" style="background:#7B2FBE"></span>Nequi · 305 332 0331</span>
+          <span class="pay-tag"><span class="dot" style="background:#820AD1"></span>Nu</span>
+          <span class="pay-tag"><span class="dot" style="background:#00C853"></span>Bre-B</span>
+        </div>
+        <p class="price-note">Paga, envíanos el comprobante por WhatsApp y recibe tu clave en minutos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     INSTALL
+============================================================ -->
+<section class="install" id="descargar">
+  <div class="install-inner">
+    <div class="install-text">
+      <h2 class="display">
+        <span class="line-mask r-mask"><span>Descarga,</span></span>
+        <span class="line-mask r-mask"><span>instala,</span></span>
+        <span class="line-mask r-mask"><span><em>en 3 minutos.</em></span></span>
+      </h2>
+      <p class="r-fade">Solo necesitas Google Chrome. La guía paso a paso viene incluida en el archivo. Si te trabas, escríbenos.</p>
+    </div>
+    <div class="install-card r-fade">
+      <div class="install-file">
+        <div class="glyph">.zip</div>
+        <div>
+          <div class="name">AutoHC.zip</div>
+          <div class="meta">Extensión de Chrome · Guía incluida</div>
+        </div>
+      </div>
+      <div class="actions">
+        <a href="REEMPLAZA_CON_LINK_DEL_ZIP" class="btn btn--solid">
+          <span>Descargar</span>
+          <span class="arrow">↓</span>
+        </a>
+        <a href="https://wa.me/573053320331?text=Hola%2C%20descargu%C3%A9%20AutoHC%20y%20necesito%20activar%20mi%20licencia" target="_blank" rel="noopener" class="btn">
+          <span>Activar licencia</span>
+          <span class="arrow">→</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     TESTIMONIALS
+============================================================ -->
+<section class="testim">
+  <div class="testim-head">
+    <h2 class="display">
+      <span class="line-mask r-mask"><span>Lo que dicen</span></span>
+      <span class="line-mask r-mask"><span>los <em>médicos</em>.</span></span>
+    </h2>
+    <p class="r-fade">Médicos que ya recuperaron horas de consulta. Reemplaza con tus testimonios reales cuando los tengas.</p>
+  </div>
+  <div class="marquee">
+    <article class="t-card">
+      <div class="stars">★★★★★</div>
+      <blockquote>"Lo que antes me tomaba 20 minutos ahora lo hago en 2. No me imagino volver a trabajar sin AutoHC."</blockquote>
+      <div class="author">Dr. [Nombre] · Médico general</div>
+    </article>
+    <article class="t-card">
+      <div class="stars">★★★★★</div>
+      <blockquote>"La instalación fue muy fácil y el soporte responde rápido. Vale cada peso."</blockquote>
+      <div class="author">Dra. [Nombre] · Especialista</div>
+    </article>
+    <article class="t-card">
+      <div class="stars">★★★★★</div>
+      <blockquote>"Llevo dos meses usándolo y ya no concibo la jornada sin él."</blockquote>
+      <div class="author">Dr. [Nombre] · Medicina familiar</div>
+    </article>
+    <article class="t-card">
+      <div class="stars">★★★★★</div>
+      <blockquote>"Recuperé el tiempo para hablar con mis pacientes. Eso no tiene precio."</blockquote>
+      <div class="author">Dra. [Nombre] · Medicina interna</div>
+    </article>
+  </div>
+</section>
+
+<!-- ============================================================
+     FAQ
+============================================================ -->
+<section class="faq">
+  <div class="faq-grid">
+    <div class="faq-aside">
+      <span class="eyebrow r-fade">— Preguntas frecuentes</span>
+      <h2 class="display" style="margin-top: 24px">
+        <span class="line-mask r-mask"><span>Todo lo que</span></span>
+        <span class="line-mask r-mask"><span><em>necesitas saber.</em></span></span>
+      </h2>
+      <p class="r-fade">¿Te queda alguna duda? <a href="https://wa.me/573053320331" target="_blank" rel="noopener" style="color: var(--brand); text-decoration: underline;">Escríbenos por WhatsApp.</a></p>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q"><span>¿Cada cuánto cambia la clave?</span><span class="faq-toggle"></span></div>
+        <div class="faq-a"><div><p>La clave es mensual. Al inicio de cada mes la recibes automáticamente. Solo la ingresas y sigues usando AutoHC con normalidad.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span>¿Funciona en Windows y Mac?</span><span class="faq-toggle"></span></div>
+        <div class="faq-a"><div><p>Sí. AutoHC es una extensión de Chrome, así que funciona en cualquier computador con Google Chrome instalado, sin importar el sistema operativo.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span>¿Solo funciona en GestionaSalud?</span><span class="faq-toggle"></span></div>
+        <div class="faq-a"><div><p>Sí, por ahora AutoHC está optimizado para GestionaSalud. Si usas otra plataforma, escríbenos y lo evaluamos.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span>¿Mis datos de pacientes están seguros?</span><span class="faq-toggle"></span></div>
+        <div class="faq-a"><div><p>AutoHC funciona completamente dentro de tu navegador. No enviamos ni almacenamos datos de pacientes en ningún servidor externo. Todo queda en tu computador.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span>¿Puedo cancelar en cualquier momento?</span><span class="faq-toggle"></span></div>
+        <div class="faq-a"><div><p>Sí. No hay contratos ni permanencia mínima. Si en algún mes no quieres renovar, simplemente no lo haces.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CTA FINAL
+============================================================ -->
+<section class="cta">
+  <h2 class="display">
+    <span class="line-mask r-mask"><span>Recupera tu</span></span>
+    <span class="line-mask r-mask"><span><em>tiempo clínico.</em></span></span>
+  </h2>
+  <div class="cta-actions r-fade">
+    <a href="#descargar" class="btn"><span>Descargar gratis</span><span class="arrow">↓</span></a>
+    <a href="https://wa.me/573053320331?text=Hola%2C%20quiero%20probar%20AutoHC" target="_blank" rel="noopener" class="btn btn--wa"><span>Hablar por WhatsApp</span><span class="arrow">→</span></a>
+  </div>
+</section>
+
+<!-- ============================================================
+     FOOTER
+============================================================ -->
+<footer>
+  <div class="foot-mark">AutoHC</div>
+  <div class="foot-bar">
+    <span>© 2026 · AutoHC</span>
+    <span>Automatización de historias clínicas · GestionaSalud</span>
+    <a href="https://wa.me/573053320331" target="_blank" rel="noopener">WhatsApp · 305 332 0331</a>
+  </div>
+</footer>
+
+<!-- Floating WA -->
+<a href="https://wa.me/573053320331?text=Hola%2C%20quiero%20saber%20más%20sobre%20AutoHC" target="_blank" rel="noopener" class="wa-float" aria-label="Escribir por WhatsApp">
+  <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.122 1.531 5.857L.057 23.882l6.174-1.457A11.938 11.938 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.846 0-3.574-.492-5.065-1.352l-.363-.215-3.665.865.924-3.573-.237-.372A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+</a>
+
+<!-- ============================================================
+     SCRIPTS
+============================================================ -->
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>gsap.registerPlugin(ScrollTrigger);</script>
+<script src="app.js"></script>
+
+<!-- React + Babel for Tweaks panel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="tweaks.jsx"></script>
+
+</body>
+</html>
